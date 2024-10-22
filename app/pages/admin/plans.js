@@ -14,7 +14,7 @@ import {
     const pieData = [
       { value: 70, color: "green" },
       { value: 30, color: "lightgray" },
-    ];
+    ]; 
   
     const plansData = [
       { id: "1", message: "Strat Obj 1", status: "achieved" },

@@ -191,6 +191,8 @@ const AdminRisks = () => {
   );
 };
 
+export default AdminRisks;
+
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
@@ -277,4 +279,3 @@ const pickerSelectStyles = StyleSheet.create({
   },
 });
 
-export default AdminRisks;

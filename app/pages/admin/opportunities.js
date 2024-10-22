@@ -10,7 +10,7 @@ import { PieChart } from "react-native-gifted-charts";
 import * as Animatable from "react-native-animatable";
 import { Easing } from "react-native-reanimated";
 
-const opportunities = () => {
+const AdminOpportunities = () => {
   const pieData = [
     { value: 70, color: "green" },
     { value: 30, color: "lightgray" },
@@ -110,7 +110,7 @@ const opportunities = () => {
   );
 };
 
-export default opportunities;
+export default AdminOpportunities;
 
 const styles = StyleSheet.create({
   mainContainer: {

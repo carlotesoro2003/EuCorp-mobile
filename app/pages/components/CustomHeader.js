@@ -6,7 +6,7 @@ import { Link } from 'expo-router'
 const CustomHeader = () => {
     return (
         <View style={styles.headerContainer}>
-            <Link href="/pages/components/Profile">
+            <Link href="/pages/admin/details">
                 <Icon name="person-circle-outline" size={30} color="#000" style={styles.icon} />
 
             </Link>

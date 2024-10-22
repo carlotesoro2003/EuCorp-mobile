@@ -5,6 +5,7 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { Link } from "expo-router";
 import Feather from "@expo/vector-icons/Feather";
 import * as Animatable from "react-native-animatable";
+import { useUser } from "@supabase/auth-helpers-react";  // Import useUser to get user details
 
 const COLORS = {
   MANPOWER: "#999999",
@@ -54,6 +55,8 @@ const departmentsData = [
 const AdminDashboard = () => {
   const fadeAnim = useRef(new Animated.Value(0)).current; // Initial opacity for department rows
   const scaleAnim = useRef(new Animated.Value(0)).current; // Initial scale for pie chart
+
+  const user = useUser();  // Get the current logged-in user
 
   // Animations on mount
   useEffect(() => {
@@ -150,6 +153,7 @@ const AdminDashboard = () => {
 
       <View style={styles.headerContainer}>
         <Text style={styles.appName}>Admin Dashboard</Text>
+        <Link href="pages/components/profile"></Link>
       </View>
 
       <ScrollView style={{ flex: 1 }}>
@@ -204,6 +208,9 @@ const AdminDashboard = () => {
   );
 };
 
+export default AdminDashboard;
+
+
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
@@ -220,6 +227,10 @@ const styles = StyleSheet.create({
     fontSize: 30,
     fontWeight: "bold",
     color: "black",
+  },
+  userEmail: {
+    fontSize: 16,
+    color: "gray",
   },
   cardContainer: {
     position: "relative",
@@ -262,25 +273,21 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#E0E0E0",
   },
+  departmentName: {
+    fontSize: 16,
+  },
   plansContainer: {
     flexDirection: "row",
     alignItems: "center",
   },
-  departmentName: {
-    color: "black",
-    fontSize: 16,
-  },
   departmentPlans: {
-    color: "black",
+    fontSize: 16,
     fontWeight: "bold",
-    fontSize: 26,
-    marginRight: 5,
+    marginRight: 10,
   },
   arrowContainer: {
-    position: "absolute",
-    top: 10,
-    right: 10,
+    alignSelf: "flex-end",
+    paddingVertical: 8,
   },
 });
 
-export default AdminDashboard;
