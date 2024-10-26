@@ -1,40 +1,93 @@
 // NotificationService.js
+import { Platform } from 'react-native';
+import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
-import * as Permissions from 'expo-permissions';
+import Constants from 'expo-constants';
 
-export const registerForPushNotificationsAsync = async () => {
-  const { status: existingStatus } = await Permissions.getAsync(Permissions.NOTIFICATIONS);
-  let finalStatus = existingStatus;
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: false,
+    shouldSetBadge: false,
+  }),
+});
 
-  // Only ask if permissions have not already been determined, because
-  // iOS won't necessarily prompt the user a second time.
-  if (existingStatus !== 'granted') {
-    const { status } = await Permissions.askAsync(Permissions.NOTIFICATIONS);
-    finalStatus = status;
+class NotificationService {
+  notificationListener = null;
+  responseListener = null;
+  expoPushToken = '';
+
+  async initialize(setNotification) {
+    this.expoPushToken = await this.registerForPushNotificationsAsync();
+    console.log("Expo Push Token:", this.expoPushToken);
+
+    this.notificationListener = Notifications.addNotificationReceivedListener(notification => {
+      setNotification(notification);
+    });
+
+    this.responseListener = Notifications.addNotificationResponseReceivedListener(response => {
+      console.log(response);
+    });
   }
 
-  // Stop here if the user did not grant permissions
-  if (finalStatus !== 'granted') {
-    alert('Failed to get push token for push notification!');
-    return;
+  removeListeners() {
+    if (this.notificationListener) {
+      Notifications.removeNotificationSubscription(this.notificationListener);
+    }
+    if (this.responseListener) {
+      Notifications.removeNotificationSubscription(this.responseListener);
+    }
   }
 
-  // Get the token for the device
-  const token = (await Notifications.getExpoPushTokenAsync()).data;
-  console.log(token); // Send this token to your server to save it and use it for sending notifications
+  async registerForPushNotificationsAsync() {
+    let token;
 
-  return token;
-};
+    if (Platform.OS === 'android') {
+      await Notifications.setNotificationChannelAsync('default', {
+        name: 'default',
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: '#FF231F7C',
+      });
+    }
 
-// Function to handle displaying notifications
-export const scheduleNotification = async (message) => {
-  await Notifications.scheduleNotificationAsync({
-    content: {
-      title: 'New Notification',
-      body: message,
-      sound: true,
-      priority: 'high',
-    },
-    trigger: null, // Trigger immediately
-  });
-};
+    if (Device.isDevice) {
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
+      if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+      if (finalStatus !== 'granted') {
+        alert('Failed to get push token for push notification!');
+        return;
+      }
+      try {
+        const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
+        if (!projectId) {
+          throw new Error('Project ID not found');
+        }
+        token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
+      } catch (e) {
+        token = `${e}`;
+      }
+    } else {
+      alert('Must use physical device for Push Notifications');
+    }
+
+    return token;
+  }
+
+  async schedulePushNotification(message) {
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: "Scheduled Notification",
+        body: message,
+        data: { additionalData: 'This is some extra data' },
+      },
+      trigger: { seconds: 2 },
+    });
+  }
+}
+
+export default new NotificationService();

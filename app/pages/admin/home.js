@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Platform, StatusBar, Animated } from "react-native";
 import { PieChart } from "react-native-gifted-charts";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
@@ -6,6 +6,8 @@ import { Link } from "expo-router";
 import Feather from "@expo/vector-icons/Feather";
 import * as Animatable from "react-native-animatable";
 import { useUser } from "@supabase/auth-helpers-react";  // Import useUser to get user details
+import * as Notifications from "expo-notifications";
+import { sendNotification } from "../../../supabaseClient";
 
 const COLORS = {
   MANPOWER: "#999999",
@@ -15,10 +17,10 @@ const COLORS = {
 };
 
 const VALUES = {
-  MANPOWER: 53,
-  FINANCIAL: 21,
-  ENVIRONMENTAL: 13,
-  SAFETY: 10,
+  MANPOWER: 73,
+  FINANCIAL: 10,
+  ENVIRONMENTAL: 3,
+  SAFETY: 4,
 };
 
 const pieData = [
@@ -57,6 +59,45 @@ const AdminDashboard = () => {
   const scaleAnim = useRef(new Animated.Value(0)).current; // Initial scale for pie chart
 
   const user = useUser();  // Get the current logged-in user
+  const [notifications, setNotifications] = useState([]);  
+
+  const scheduleNotification = useCallback(async (value) => {
+    const message = `Risk level is ${value}`;
+    
+    // Send notification to the database
+    await sendNotification(user.id, message); // Pass the user ID and the message
+
+    // Schedule the local notification
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: "Risk Alert",
+        body: message,
+        data: { value },
+      },
+      trigger: null,
+    });
+  }, [user.id]);
+
+  // Check values and send notification if any are above 60
+  useEffect(() => {
+    Object.values(VALUES).forEach((value) => {
+      if (value > 60) {
+        scheduleNotification(value);
+      }
+    });
+  }, [scheduleNotification]);
+
+  // Request notification permissions on mount
+  useEffect(() => {
+    const requestPermissions = async () => {
+      const { status } = await Notifications.getPermissionsAsync();
+      if (status !== "granted") {
+        await Notifications.requestPermissionsAsync();
+      }
+    };
+
+    requestPermissions();
+  }, []);
 
   // Animations on mount
   useEffect(() => {
@@ -89,32 +130,16 @@ const AdminDashboard = () => {
 
   const renderLegendComponent = () => {
     return (
-      <>
-        <View style={styles.legendContainer}>
-          <View style={styles.legendRow}>
-            {renderDot(COLORS.MANPOWER)}
-            <Text style={styles.legendText}>Manpower: {VALUES.MANPOWER}%</Text>
-          </View>
-          <View style={styles.legendRow}>
-            {renderDot(COLORS.ENVIRONMENTAL)}
+      <View style={styles.legendContainer}>
+        {Object.keys(COLORS).map((key) => (
+          <View style={styles.legendRow} key={key}>
+            {renderDot(COLORS[key])}
             <Text style={styles.legendText}>
-              Environmental: {VALUES.ENVIRONMENTAL}%
+              {key}: {VALUES[key]}%
             </Text>
           </View>
-        </View>
-        <View style={styles.legendContainer}>
-          <View style={styles.legendRow}>
-            {renderDot(COLORS.FINANCIAL)}
-            <Text style={styles.legendText}>
-              Financial: {VALUES.FINANCIAL}%
-            </Text>
-          </View>
-          <View style={styles.legendRow}>
-            {renderDot(COLORS.SAFETY)}
-            <Text style={styles.legendText}>Safety: {VALUES.SAFETY}%</Text>
-          </View>
-        </View>
-      </>
+        ))}
+      </View>
     );
   };
 
@@ -210,7 +235,6 @@ const AdminDashboard = () => {
 
 export default AdminDashboard;
 
-
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
@@ -224,57 +248,55 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   appName: {
-    fontSize: 30,
-    fontWeight: "bold",
-    color: "black",
-  },
-  userEmail: {
-    fontSize: 16,
-    color: "gray",
-  },
-  cardContainer: {
-    position: "relative",
-  },
-  risksCard: {
-    margin: 20,
-    padding: 20,
-    borderRadius: 14,
-    backgroundColor: "white",
-  },
-  risksTitle: {
-    color: "black",
     fontSize: 24,
     fontWeight: "bold",
   },
-  pieChartContainer: {
+  cardContainer: {
+    paddingHorizontal: 16,
+    marginVertical: 10,
+  },
+  risksCard: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
     padding: 20,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  risksTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+  },
+  pieChartContainer: {
     alignItems: "center",
+    justifyContent: "center",
   },
   legendContainer: {
     flexDirection: "row",
-    justifyContent: "center",
-    marginBottom: 10,
+    justifyContent: "space-between",
+    marginVertical: 10,
   },
   legendRow: {
     flexDirection: "row",
     alignItems: "center",
-    width: 120,
-    marginRight: 20,
   },
   legendText: {
-    color: "black",
-    fontSize: 11,
+    fontSize: 16,
   },
   departmentRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginVertical: 14,
-    paddingVertical: 4,
+    paddingVertical: 15,
     borderBottomWidth: 1,
-    borderBottomColor: "#E0E0E0",
+    borderColor: "#ddd",
   },
   departmentName: {
-    fontSize: 16,
+    fontSize: 18,
   },
   plansContainer: {
     flexDirection: "row",
@@ -282,12 +304,10 @@ const styles = StyleSheet.create({
   },
   departmentPlans: {
     fontSize: 16,
-    fontWeight: "bold",
     marginRight: 10,
   },
   arrowContainer: {
     alignSelf: "flex-end",
-    paddingVertical: 8,
+    marginTop: 10,
   },
 });
-

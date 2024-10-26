@@ -6,7 +6,6 @@ import NotificationsSender from '../../../NotificationsSender';
 const Notifications = () => {
   return (
     <View style={{ flex: 1 }}>
-      <Text>Notifications</Text>
       <NotificationsList />
     </View>
   );
